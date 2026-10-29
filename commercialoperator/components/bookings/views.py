@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic.base import TemplateView, View
 from ledger_api_client.helpers import is_payment_admin
+from ledger_api_client.ledger_models import Basket, Invoice
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
-from ledger_api_client.ledger_models import Invoice, Basket
 from ledger_api_client.utils import validate_booking_and_invoice_references
 from rest_framework import serializers, status, views
 from rest_framework.permissions import AllowAny
@@ -603,7 +603,9 @@ class ComplianceFeeSuccessViewPreload(views.APIView):
 
         booking_reference = compliance.lodgement_number
         if not validate_booking_and_invoice_references(booking_reference, invoice_ref):
-            raise serializers.ValidationError(f"Invoice: {invoice_ref} and Booking Reference: {booking_reference} are not part of the same order/basket.")
+            raise serializers.ValidationError(
+                f"Invoice: {invoice_ref} and Booking Reference: {booking_reference} are not part of the same order/basket."
+            )
 
         _, _ = ComplianceFeeInvoice.objects.get_or_create(
             compliance_fee=compliance_fee, invoice_reference=invoice_ref
@@ -657,10 +659,18 @@ class ComplianceFeeSuccessView(TemplateView):
     template_name = "commercialoperator/booking/success_compliance_fee.html"
 
     def valid_token_payment_session(self, request, invoice_reference):
-        if 'token_payment_session' in request.session:
-            basket = Basket.objects.filter(status='Submitted', id=request.session['token_payment_session']).order_by('-id').first()
-            del request.session['token_payment_session']
-            return validate_booking_and_invoice_references(basket.booking_reference, invoice_reference)
+        if "token_payment_session" in request.session:
+            basket = (
+                Basket.objects.filter(
+                    status="Submitted", id=request.session["token_payment_session"]
+                )
+                .order_by("-id")
+                .first()
+            )
+            del request.session["token_payment_session"]
+            return validate_booking_and_invoice_references(
+                basket.booking_reference, invoice_reference
+            )
 
     def get(self, request, *args, **kwargs):
         print("ComplianceFeeSuccessView")
@@ -671,7 +681,7 @@ class ComplianceFeeSuccessView(TemplateView):
         except:
             raise serializers.ValidationError("Compliance does not exist")
 
-        if 'token_payment_session' in request.session:
+        if "token_payment_session" in request.session:
             invoice_ref = request.GET.get("invoice", "")
         else:
             compliance_fee = get_session_compliance_invoice(request.session)
@@ -681,7 +691,9 @@ class ComplianceFeeSuccessView(TemplateView):
         user = request.user
         try:
             try:
-                user_orgs = [org.id for org in user.commercialoperator_organisations.all()]
+                user_orgs = [
+                    org.id for org in user.commercialoperator_organisations.all()
+                ]
             except:
                 user_orgs = []
             if not (
@@ -738,7 +750,9 @@ class FilmingFeeSuccessViewPreload(views.APIView):
 
         booking_reference = proposal.lodgement_number
         if not validate_booking_and_invoice_references(booking_reference, invoice_ref):
-            raise serializers.ValidationError(f"Invoice: {invoice_ref} and Booking Reference: {booking_reference} are not part of the same order/basket.")
+            raise serializers.ValidationError(
+                f"Invoice: {invoice_ref} and Booking Reference: {booking_reference} are not part of the same order/basket."
+            )
 
         if filming_fee.payment_type == FilmingFee.PAYMENT_TYPE_TEMPORARY:
             filming_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
@@ -776,10 +790,18 @@ class FilmingFeeSuccessView(TemplateView):
     template_name = "commercialoperator/booking/success_fee.html"
 
     def valid_token_payment_session(self, request, invoice_reference):
-        if 'token_payment_session' in request.session:
-            basket = Basket.objects.filter(status='Submitted', id=request.session['token_payment_session']).order_by('-id').first()
-            del request.session['token_payment_session']
-            return validate_booking_and_invoice_references(basket.booking_reference, invoice_reference)
+        if "token_payment_session" in request.session:
+            basket = (
+                Basket.objects.filter(
+                    status="Submitted", id=request.session["token_payment_session"]
+                )
+                .order_by("-id")
+                .first()
+            )
+            del request.session["token_payment_session"]
+            return validate_booking_and_invoice_references(
+                basket.booking_reference, invoice_reference
+            )
 
     def get(self, request, *args, **kwargs):
         print("FilmingFeeSuccessView")
@@ -790,7 +812,7 @@ class FilmingFeeSuccessView(TemplateView):
         except:
             raise serializers.ValidationError("Proposal does not exist")
 
-        if 'token_payment_session' in request.session:
+        if "token_payment_session" in request.session:
             invoice_ref = request.GET.get("invoice", "")
         else:
             filming_fee = get_session_filming_invoice(request.session)
@@ -800,7 +822,9 @@ class FilmingFeeSuccessView(TemplateView):
         user = request.user
         try:
             try:
-                user_orgs = [org.id for org in user.commercialoperator_organisations.all()]
+                user_orgs = [
+                    org.id for org in user.commercialoperator_organisations.all()
+                ]
             except:
                 user_orgs = []
             if not (
@@ -858,7 +882,6 @@ class ApplicationFeeSuccessViewPreload(views.APIView):
             )
             return redirect("home")
 
-        # use the latest Fee record
         proposal_fee = (
             ApplicationFee.objects.filter(
                 proposal=proposal,
@@ -957,10 +980,18 @@ class ApplicationFeeSuccessView(TemplateView):
     template_name = "commercialoperator/booking/success_fee.html"
 
     def valid_token_payment_session(self, request, invoice_reference):
-        if 'token_payment_session' in request.session:
-            basket = Basket.objects.filter(status='Submitted', id=request.session['token_payment_session']).order_by('-id').first()
-            del request.session['token_payment_session']
-            return validate_booking_and_invoice_references(basket.booking_reference, invoice_reference)
+        if "token_payment_session" in request.session:
+            basket = (
+                Basket.objects.filter(
+                    status="Submitted", id=request.session["token_payment_session"]
+                )
+                .order_by("-id")
+                .first()
+            )
+            del request.session["token_payment_session"]
+            return validate_booking_and_invoice_references(
+                basket.booking_reference, invoice_reference
+            )
 
     def get(self, request, *args, **kwargs):
         print("ApplicationFeeSuccessView")
@@ -971,7 +1002,7 @@ class ApplicationFeeSuccessView(TemplateView):
         except:
             raise serializers.ValidationError("Proposal does not exist")
 
-        if 'token_payment_session' in request.session:
+        if "token_payment_session" in request.session:
             invoice_ref = request.GET.get("invoice", "")
         else:
             application_fee = get_session_application_invoice(request.session)
@@ -981,7 +1012,9 @@ class ApplicationFeeSuccessView(TemplateView):
         user = request.user
         try:
             try:
-                user_orgs = [org.id for org in user.commercialoperator_organisations.all()]
+                user_orgs = [
+                    org.id for org in user.commercialoperator_organisations.all()
+                ]
             except:
                 user_orgs = []
             if not (
@@ -1038,7 +1071,9 @@ class BookingSuccessViewPreload(views.APIView):
 
         booking_reference = proposal.lodgement_number
         if not validate_booking_and_invoice_references(booking_reference, invoice_ref):
-            raise serializers.ValidationError(f"Invoice: {invoice_ref} and Booking Reference: {booking_reference} are not part of the same order/basket.")
+            raise serializers.ValidationError(
+                f"Invoice: {invoice_ref} and Booking Reference: {booking_reference} are not part of the same order/basket."
+            )
 
         _, created = BookingInvoice.objects.get_or_create(
             booking=booking,
@@ -1107,10 +1142,18 @@ class BookingSuccessView(TemplateView):
     template_name = "commercialoperator/booking/success.html"
 
     def valid_token_payment_session(self, request, invoice_reference):
-        if 'token_payment_session' in request.session:
-            basket = Basket.objects.filter(status='Submitted', id=request.session['token_payment_session']).order_by('-id').first()
-            del request.session['token_payment_session']
-            return validate_booking_and_invoice_references(basket.booking_reference, invoice_reference)
+        if "token_payment_session" in request.session:
+            basket = (
+                Basket.objects.filter(
+                    status="Submitted", id=request.session["token_payment_session"]
+                )
+                .order_by("-id")
+                .first()
+            )
+            del request.session["token_payment_session"]
+            return validate_booking_and_invoice_references(
+                basket.booking_reference, invoice_reference
+            )
 
     def get(self, request, *args, **kwargs):
         print("BookingSuccessView")
@@ -1124,20 +1167,26 @@ class BookingSuccessView(TemplateView):
         booking = Booking.objects.filter(proposal=proposal).order_by("created").last()
         fee_inv = booking.invoices.order_by("-id").first()
 
-        if 'token_payment_session' in request.session:
+        if "token_payment_session" in request.session:
             invoice_ref = request.GET.get("invoice", "")
             if invoice_ref != fee_inv.invoice_reference:
-                logger.warning("Latest booking record invoice and invoice in request do not match")
+                logger.warning(
+                    "Latest booking record invoice and invoice in request do not match"
+                )
         else:
             session_booking = get_session_booking(request.session)
             invoice_ref = fee_inv.invoice_reference
             if booking != session_booking:
-                logger.warning("Latest booking record and booking in session do not match")
+                logger.warning(
+                    "Latest booking record and booking in session do not match"
+                )
 
         user = request.user
         try:
             try:
-                user_orgs = [org.id for org in user.commercialoperator_organisations.all()]
+                user_orgs = [
+                    org.id for org in user.commercialoperator_organisations.all()
+                ]
             except:
                 user_orgs = []
             if not (
