@@ -275,38 +275,67 @@ def create_monthly_invoice(
     return failed_bookings
 
 
-def create_monthly_confirmation(user, booking):
-    """From 'Park Entry Fees' payment screen, monthly invoicing creates invoice later (the next month), so immediately we only send a confirmation.
-    For more parks/arrival_dates booked for the same licence, the monthly confirmation pdf is appended with all the park entries for that given month.
+def create_monthly_confirmation(
+    user,
+    booking,
+) -> list[int]:
     """
+    Send a monthly invoicing booking confirmation.
 
+    Monthly invoicing bookings are invoiced during the following month's
+    invoicing run. This confirmation email acknowledges the booking and
+    provides booking details prior to invoice generation.
+
+    Args:
+        user: User responsible for the booking.
+        booking: Monthly invoicing booking.
+
+    Returns:
+        A list containing the booking ID if confirmation processing failed,
+        otherwise an empty list.
+    """
     failed_bookings = []
-    with transaction.atomic():
-        if (
-            booking.booking_type == Booking.BOOKING_TYPE_MONTHLY_INVOICING
-            and booking.proposal.org_applicant
-            and is_monthly_invoicing_allowed(booking)
-        ):
-            try:
-                recipients = list(
-                    set([booking.proposal.applicant_email, user.email])
-                )  # unique list
-                send_monthly_confirmation_tclass_email_notification(
-                    user, booking, recipients=recipients
+
+    if not (
+        booking.booking_type == Booking.BOOKING_TYPE_MONTHLY_INVOICING
+        and booking.proposal.org_applicant
+        and is_monthly_invoicing_allowed(booking)
+    ):
+        return failed_bookings
+
+    try:
+        with transaction.atomic():
+            recipients = list(
+                dict.fromkeys(
+                    [
+                        booking.proposal.applicant_email,
+                        user.email,
+                    ]
                 )
-                ProposalUserAction.log_action(
-                    booking.proposal,
-                    ProposalUserAction.ACTION_SEND_MONTHLY_CONFIRMATION.format(
-                        booking.id, booking.proposal.id, ", ".join(recipients)
-                    ),
-                    user,
-                )
-            except Exception as e:
-                logger.error(
-                    f"Failed to send Monthly Confirmation email for booking_id {booking.id}"
-                )
-                logger.error(f"{e}")
-                failed_bookings.append(booking.id)
+            )
+
+            send_monthly_confirmation_tclass_email_notification(
+                user,
+                booking,
+                recipients=recipients,
+            )
+
+            ProposalUserAction.log_action(
+                booking.proposal,
+                ProposalUserAction.ACTION_SEND_MONTHLY_CONFIRMATION.format(
+                    booking.id,
+                    booking.proposal.id,
+                    ", ".join(recipients),
+                ),
+                user,
+            )
+
+    except Exception:
+        logger.exception(
+            "Failed to send monthly confirmation email for booking_id %s",
+            booking.id,
+        )
+        failed_bookings.append(booking.id)
 
     return failed_bookings
 
