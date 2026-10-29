@@ -126,7 +126,7 @@ def send_application_invoice_filming_email_notification(
     }
 
     filename = "invoice.pdf"
-    invoice_pdf = get_invoice_pdf(invoice.get("reference"))
+    invoice_pdf = get_invoice_pdf(invoice.reference)
     attachment = (filename, invoice_pdf.content, "application/pdf")
 
     msg = email.send(recipients, attachments=[attachment], context=context)
@@ -191,7 +191,7 @@ def send_application_fee_invoice_tclass_email_notification(
     }
 
     filename = "invoice.pdf"
-    invoice_pdf = get_invoice_pdf(invoice.get("reference"))
+    invoice_pdf = get_invoice_pdf(invoice.reference)
     attachment = (filename, invoice_pdf.content, "application/pdf")
 
     msg = email.send(recipients, attachments=[attachment], context=context)
