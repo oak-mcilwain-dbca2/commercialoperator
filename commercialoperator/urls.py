@@ -362,6 +362,11 @@ urlpatterns = (
             name="filming_fee_success",
         ),
         url(
+            r"^success/monthly_invoice_preload/(?P<reference>.+)/",
+            booking_views.MonthlyInvoiceSuccessPreload.as_view(),
+            name="monthly_invoice_success_preload",
+        ),
+        url(
             r"^cols/payments/invoice-payment-view/(?P<reference>\d+)",
             booking_views.InvoicePaymentView.as_view(),
             name="internal-invoice-payment-view",
