@@ -239,6 +239,8 @@ def create_monthly_invoice(
                     )
                 )
 
+                create_monthly_confirmation(user, booking)
+
                 send_monthly_invoice_tclass_email_notification(
                     user,
                     booking,
