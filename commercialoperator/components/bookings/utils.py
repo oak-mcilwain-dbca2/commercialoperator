@@ -1285,7 +1285,7 @@ def create_invoice(
     basket_id = basket_hash.split("|")[0]
 
     return_preload_url = settings.COMMERCIALOPERATOR_EXTERNAL_URL + reverse(
-        "public_booking_success_preload",
+        "monthly_invoice_success_preload",
         kwargs={"reference": booking_reference},
     )
 
