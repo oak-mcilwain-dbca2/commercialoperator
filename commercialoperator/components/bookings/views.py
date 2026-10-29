@@ -841,75 +841,114 @@ class ApplicationFeeSuccessViewPreload(views.APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, reference, format=None):
-        print("ApplicationFeeSuccessViewPreload")
+        logger.info("ApplicationFeeSuccessViewPreload")
 
         invoice_ref = request.GET.get("invoice")
 
         try:
-            proposal = Proposal.objects.get(lodgement_number=reference)
-            print("proposal:", proposal)
-        except Exception as e:
-            print(e)
+            proposal = Proposal.objects.get(
+                lodgement_number=reference,
+            )
+            logger.info("proposal: %s", proposal)
+
+        except Proposal.DoesNotExist:
+            logger.exception(
+                "No proposal found with lodgement_number %s",
+                reference,
+            )
             return redirect("home")
 
         # use the latest Fee record
         proposal_fee = (
-            ApplicationFee.objects.filter(proposal=proposal).order_by("created").last()
+            ApplicationFee.objects.filter(
+                proposal=proposal,
+            )
+            .order_by("created")
+            .last()
         )
 
         booking_reference = proposal.lodgement_number
-        if not validate_booking_and_invoice_references(booking_reference, invoice_ref):
-            raise serializers.ValidationError(f"Invoice: {invoice_ref} and Booking Reference: {booking_reference} are not part of the same order/basket.")
 
-        _, _ = ApplicationFeeInvoice.objects.get_or_create(
-            application_fee=proposal_fee, invoice_reference=invoice_ref
+        if not validate_booking_and_invoice_references(
+            booking_reference,
+            invoice_ref,
+        ):
+            raise serializers.ValidationError(
+                f"Invoice: {invoice_ref} and Booking Reference: "
+                f"{booking_reference} are not part of the same order/basket."
+            )
+
+        ApplicationFeeInvoice.objects.get_or_create(
+            application_fee=proposal_fee,
+            invoice_reference=invoice_ref,
         )
 
         if proposal_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
             proposal_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
             proposal_fee.expiry_time = None
-            success = False
+
             try:
-                inv = Invoice.objects.get(reference=invoice_ref)
-                invoice_properties = get_invoice_properties(inv.id)
+                inv = Invoice.objects.get(
+                    reference=invoice_ref,
+                )
+
+                invoice_properties = get_invoice_properties(
+                    inv.id,
+                )
+
                 payment_status = invoice_properties.get("invoice", {}).get(
                     "payment_status"
                 )
 
-                if payment_status == "paid" or payment_status == "over_paid":
-                    proposal = proposal_submit(proposal)
-                    proposal.fee_invoice_reference = invoice_ref
-                    proposal.save()
-                    proposal.reset_application_discount(proposal.submitter)
-                    success = True
-                else:
-                    logger.error(f"Invoice payment status is {payment_status}")
+                if payment_status not in ("paid", "over_paid"):
+                    logger.error(
+                        "Invoice %s payment status is %s",
+                        invoice_ref,
+                        payment_status,
+                    )
                     raise serializers.ValidationError(
                         f"Invoice payment status is {payment_status}"
                     )
 
-            except Exception as e:
-                print(e)
+                proposal = proposal_submit(proposal)
+                proposal.fee_invoice_reference = invoice_ref
+                proposal.save()
+                proposal.reset_application_discount(
+                    proposal.submitter,
+                )
+
+            except Exception:
+                logger.exception(
+                    "Fee success preload failed for proposal %s invoice %s",
+                    proposal.lodgement_number,
+                    invoice_ref,
+                )
                 raise serializers.ValidationError("Fee success preload failed")
 
-            if success:
-                proposal_fee.save()
-                applicant = proposal.applicant_obj
-                try:
-                    recipient = Organisation.objects.get(id=applicant.id).email
-                except:
-                    recipient = proposal.submitter.email
+            proposal_fee.save()
 
-                try:
-                    # NOTE: request=None works fine with this email function
-                    send_application_fee_invoice_tclass_email_notification(
-                        request, proposal, inv, recipients=[recipient]
-                    )
-                except Exception:
-                    # log the error but do not invalidate the payment and subsequent compliance submission
-                    logger.error(
-                        "Unable to send compliance fee invoice email notification"
-                    )
+            applicant = proposal.applicant_obj
+
+            try:
+                recipient = Organisation.objects.get(
+                    id=applicant.id,
+                ).email
+            except Exception:
+                recipient = proposal.submitter.email
+
+            try:
+                send_application_fee_invoice_tclass_email_notification(
+                    request,
+                    proposal,
+                    inv,
+                    recipients=[recipient],
+                )
+            except Exception:
+                # Log the error but do not invalidate the payment
+                # and subsequent compliance submission.
+                logger.exception(
+                    "Unable to send compliance fee invoice email notification"
+                )
 
         return Response(status=status.HTTP_200_OK)
 
