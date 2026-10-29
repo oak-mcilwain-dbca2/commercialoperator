@@ -973,6 +973,12 @@ class ApplicationFeeSuccessViewPreload(views.APIView):
                     "Unable to send compliance fee invoice email notification"
                 )
 
+        logger.info(
+            "Successfully processed application fee payment for proposal %s invoice %s",
+            proposal.lodgement_number,
+            invoice_ref,
+        )
+
         return Response(status=status.HTTP_200_OK)
 
 
