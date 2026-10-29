@@ -1346,3 +1346,73 @@ class SessionAbortRedirectView(TemplateView):
 
         context = template_context(self.request)
         return render(request, self.template_name, context)
+
+
+class MonthlyInvoiceSuccessPreload(views.APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, reference, format=None):
+        logger.info("MonthlyInvoiceSuccessPreload")
+
+        invoice_ref = request.GET.get("invoice")
+
+        try:
+            proposal = Proposal.objects.get(
+                lodgement_number=reference,
+            )
+        except Proposal.DoesNotExist:
+            logger.exception(
+                "No proposal found with lodgement_number %s",
+                reference,
+            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        booking = Booking.objects.filter(proposal=proposal).order_by("created").last()
+
+        try:
+            invoice = Invoice.objects.get(
+                reference=invoice_ref,
+            )
+
+            invoice_properties = get_invoice_properties(invoice.id)
+
+            payment_status = invoice_properties.get("invoice", {}).get("payment_status")
+
+            if payment_status not in ("paid", "over_paid"):
+                logger.error(
+                    "Invoice %s payment status is %s",
+                    invoice_ref,
+                    payment_status,
+                )
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        except Exception:
+            logger.exception(
+                "Failed validating payment for invoice %s",
+                invoice_ref,
+            )
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        recipients = []
+
+        try:
+            recipients.append(proposal.applicant.email)
+        except Exception:
+            if proposal.submitter and proposal.submitter.email:
+                recipients.append(proposal.submitter.email)
+
+        if recipients:
+            send_invoice_tclass_email_notification(
+                proposal.submitter,
+                booking,
+                invoice,
+                recipients=recipients,
+            )
+
+        return Response(
+            status=status.HTTP_200_OK,
+        )
