@@ -97,14 +97,8 @@
                         name="payment"
                         label=""
                     />
-
                     <div
-                        v-if="
-                            selected_licence.org_applicant == null ||
-                            (!selected_licence.bpay_allowed &&
-                                !selected_licence.monthly_invoicing_allowed &&
-                                !selected_licence.other_allowed)
-                        "
+                        v-if="!applicantQualifiesForAlternativePaymentTypes"
                         style="float: right"
                     >
                         <!-- Individual applicants must pay using Credit Card -->
@@ -214,6 +208,14 @@ export default {
                     label: null,
                     expiry_date: null,
                 }
+            );
+        },
+        applicantQualifiesForAlternativePaymentTypes: function () {
+            return (
+                this.selected_licence.org_applicant &&
+                this.selected_licence.bpay_allowed &&
+                this.selected_licence.monthly_invoicing_allowed &&
+                this.selected_licence.other_allowed
             );
         },
     },
