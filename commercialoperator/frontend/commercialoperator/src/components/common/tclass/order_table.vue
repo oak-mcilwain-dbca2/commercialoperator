@@ -198,13 +198,14 @@
                 </table>
                 <span
                     ><button
-                        class="btn btn-primary"
+                        class="btn btn-primary btn-sm"
                         type="button"
                         :disabled="disabled"
                         @click="addRow()"
                     >
-                        +</button
-                    >Add another park and/or date</span
+                        <i class="bi bi-plus-circle"></i> Add another park
+                        and/or date
+                    </button></span
                 >
             </div>
         </div>
