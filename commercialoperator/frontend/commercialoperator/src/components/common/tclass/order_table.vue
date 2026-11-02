@@ -20,7 +20,7 @@
                                         class="fas fa-circle-info"
                                         aria-hidden="true"
                                         title="If a tour is entering multiple parks with entry fees on the same day, only one entry fee applies per passenger. When adding additional parks to a payment, check the ‘same tour group’ box which will reduce the fee to zero dollars for passengers who have already paid an entry fee on that date. If a tour is visiting Nambung and Yanchep National parks on the same day, a per passenger fee will be charged for both parks."
-                                        style="cursor: pointer;  color: blue"
+                                        style="cursor: pointer; color: blue"
                                     ></i>
                                 </span>
                             </th>
@@ -78,8 +78,8 @@
                                 <template v-if="col_types[col_idx] == 'date'">
                                     <input
                                         id="id_arrival_date"
-                                        style="width:100%"
                                         v-model="row[col_idx]"
+                                        style="width: 100%"
                                         class="tbl_input form-control"
                                         :type="col_types[col_idx]"
                                         :max="expiry_date"
@@ -149,7 +149,9 @@
                                         :required="true"
                                         :onclick="isClickable"
                                         :disabled="row[1] == ''"
-                                        @change="tour_group_change(row, row_idx)"
+                                        @change="
+                                            tour_group_change(row, row_idx)
+                                        "
                                     />
                                 </template>
                                 <template v-if="col_types[col_idx] == 'total'">
@@ -222,7 +224,7 @@
 <script>
 import { helpers } from '@/utils/hooks';
 import _ from 'lodash';
-import $ from 'jquery'
+import $ from 'jquery';
 export default {
     components: {},
     filters: {
@@ -574,9 +576,10 @@ export default {
         },
         disable_same_tour_group_checkbox: function (row, row_idx) {
             let vm = this;
-            if (
-                !(row && (row[vm.idx_park] == '' || row[vm.idx_park] == null))
-            ) {
+            if (!(
+                row &&
+                (row[vm.idx_park] == '' || row[vm.idx_park] == null)
+            )) {
                 var selected_arrival = row[vm.idx_arrival_date];
                 var selected_region_id = row[vm.idx_park].region_id;
                 if (selected_arrival == '' || selected_region_id == '') {
@@ -602,7 +605,6 @@ export default {
         },
         // eslint-disable-next-line no-unused-vars
         calcPrice: function (row, row_idx, col_idx) {
-            
             let vm = this;
 
             var total_adults_same_group = 0;
@@ -640,11 +642,19 @@ export default {
                                 region_id == park_region_id &&
                                 arrival == row[vm.idx_arrival_date]
                             ) {
-                                console.log(row)
-                                selected_adults = isNaN(parseInt(row[vm.idx_adult]))? 0: parseInt(row[vm.idx_adult]);
-                                selected_children = isNaN(parseInt(row[vm.idx_child]))? 0: parseInt(row[vm.idx_child]);
+                                console.log(row);
+                                selected_adults = isNaN(
+                                    parseInt(row[vm.idx_adult])
+                                )
+                                    ? 0
+                                    : parseInt(row[vm.idx_adult]);
+                                selected_children = isNaN(
+                                    parseInt(row[vm.idx_child])
+                                )
+                                    ? 0
+                                    : parseInt(row[vm.idx_child]);
 
-                                console.log(selected_adults,selected_children)
+                                console.log(selected_adults, selected_children);
 
                                 if (same_tour_group_checked) {
                                     if (count == 0) {
@@ -934,10 +944,10 @@ export default {
                 vm.same_tour_group_checkbox[row_idx].disabled = is_disabled;
             }
         },
-        
+
         tour_group_change: function (row, row_idx) {
-            let vm = this;   
-            console.log(vm.table.tbody[row_idx], row)         
+            let vm = this;
+            console.log(vm.table.tbody[row_idx], row);
             vm.table.tbody[row_idx] = row;
             vm.updateTableJSON();
             vm.calcPrice(row, row_idx);
